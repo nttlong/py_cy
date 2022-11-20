@@ -284,19 +284,25 @@ def check_implement(interface: type, implement: type):
         for x in miss_name:
             fnc_declare = ""
             handler = interface_methods[x]
+            agr_count = min(handler.__code__.co_argcount,handler.__code__.co_varnames.__len__())
+            i=0
             for a in handler.__code__.co_varnames:
-                m = handler.__annotations__.get(a)
-                if m:
-                    u, v = get_module(m)
-                    if u != int.__module__:
-                        importers[u] = v
-                    fnc_declare += f"{a}:{m.__name__},"
-                else:
-                    fnc_declare += f"{a},"
+                if i<agr_count:
+
+                    m = handler.__annotations__.get(a)
+                    if m:
+                        u, v = get_module(m)
+                        if u != int.__module__:
+                            importers[u] = v
+                        fnc_declare += f"{a}:{m.__name__},"
+                    else:
+                        fnc_declare += f"{a},"
+                i+=1
             if fnc_declare != "":
                 fnc_declare = fnc_declare[:-1]
 
             full_fnc_decalre = f"def {x}({fnc_declare})"
+
             if handler.__annotations__.get("return"):
                 u, v = get_module(handler.__annotations__.get("return"))
                 if u != int.__module__:
@@ -304,13 +310,16 @@ def check_implement(interface: type, implement: type):
                 full_fnc_decalre += f"->{handler.__annotations__.get('return').__name__}:"
             else:
                 full_fnc_decalre += ":"
-
+            if handler.__doc__ is not None:
+                full_fnc_decalre+=f'\n\t"""{handler.__doc__}\t"""'
+            else:
+                full_fnc_decalre += f'\n\t"""\n\tsome how to implement thy source here ...\n\t"""'
             msg += f"\n{full_fnc_decalre}\n" \
                    f"\traise NotImplemented"
         for k, v in importers.items():
             msg = f"\nfrom {k} import {v}\n{msg}"
-        description = f"Please open file:\n{inspect.getfile(implement)}\n goto \n{implement.__name__} \nthen insert bellow code\n:"
-        raise Exception(f"{description}{msg}")
+        description = f"\nIt looks likes thou forgot implement thy source code\n\tPlease open file:\n\t\t\t{inspect.getfile(implement)}\n\t\t Then goto \n\t\t\t class {implement.__name__} \n\t\tinsert bellow code\n--------------------------------------------\n"
+        raise Exception(f"{description}{msg}\n-----------------------\ngood luck!")
 
 
 def must_implement(interface: type):
@@ -391,12 +400,10 @@ def inject(cls):
     __lazy_injector__[key] = lazy_cls(cls)
     return __lazy_injector__[key]
 def scope(cls):
-    global __lazy_injector__
     global __config_provider_cache__
     key=f"{cls.__module__}/{cls.__name__}"
-    if __lazy_injector__.get(key):
-        return __lazy_injector__[key]
-    class lazy_cls:
+
+    class lazy_scope_cls:
         def __init__(self,cls):
             self.__cls__=cls
             self.__ins__ = None
@@ -410,7 +417,7 @@ def scope(cls):
         def __getattr__(self, item):
             ins = self.__get_ins__()
             return getattr(ins,item)
-    __lazy_injector__[key] = lazy_cls(cls)
+    __lazy_injector__[key] = lazy_scope_cls(cls)
     return __lazy_injector__[key]
 def singleton(cls):
     global __lazy_injector__
