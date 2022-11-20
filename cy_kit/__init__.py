@@ -5,23 +5,23 @@ from typing import TypeVar
 
 __working_dir__ = pathlib.Path(__file__).parent.__str__()
 
-
+import cy_kit
 
 sys.path.append(__working_dir__)
 
 import cy_kit_x
 
-container = getattr(cy_kit_x, "container")
+container = cy_kit_x.container
 
 T = TypeVar('T')
 
 
 def single(cls: T) -> T:
-    return cy_kit_x.single(cls)
+    return cy_kit_x.resolve_singleton(cls)
 
 
 def instance(cls: T) -> T:
-    return cy_kit_x.instance(cls)
+    return cy_kit_x.resolve_scope(cls)
 
 
 def config_provider(from_class: type, implement_class: type):
@@ -65,3 +65,7 @@ def combine_agruments(data):
 
 def inject(cls:T)->T:
     return cy_kit_x.inject(cls)
+def singleton(cls:T)->T:
+    return cy_kit_x.singleton(cls)
+def scope(cls:T)->T:
+    return cy_kit_x.scope(cls)

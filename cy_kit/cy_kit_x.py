@@ -8,10 +8,20 @@ from copy import deepcopy
 
 
 
+def __resolve_container__(cls:type):
+    if not hasattr(cls,"__annotations__"):
+        return inject(cls)
+    ret={}
+    if cls.__annotations__.items().__len__()==0:
+        return inject(cls)
+    for k,v in cls.__annotations__.items():
+        if inspect.isclass(v):
+            ret[k]=__resolve_container__(v)
+        else:
+            ret[k]=v
+    return ret
 
 def container(*args, **kwargs):
-    fx = args
-
     def container_wrapper(cls):
         old_getattr = None
         if hasattr(cls, "__getattribute__"):
@@ -33,7 +43,13 @@ def container(*args, **kwargs):
                     ret = __annotations__.get(item)
             import inspect
             if inspect.isclass(ret):
-                ret = container_wrapper(ret)
+
+                ret_resolve = __resolve_container__(ret)
+                if isinstance(ret_resolve,dict):
+                    ret_instance = ret()
+                    for k,v in ret_resolve.items():
+                        setattr(ret_instance,k,v)
+                    return ret_instance
                 return ret
 
             return ret
@@ -64,7 +80,7 @@ def __change_init__(cls: type):
     setattr(cls, "__init__", new_init)
 
 
-def single(cls, *args, **kwargs):
+def resolve_singleton(cls, *args, **kwargs):
     key = f"{cls.__module__}/{cls.__name__}"
     ret = None
     if __cache_depen__.get(key) is None:
@@ -96,7 +112,7 @@ def single(cls, *args, **kwargs):
     return __cache_depen__[key]
 
 
-def instance(cls, *args, **kwargs):
+def resolve_scope(cls, *args, **kwargs):
     if cls.__init__.__defaults__ is not None:
         args = {}
         for k, v in cls.__init__.__annotations__.items():
@@ -344,7 +360,7 @@ def provider(cls):
                 raise Exception(f"Thous must call config_provider for {self.__cls__.__module__}.{self.__cls__.__name__}")
 
             if self.__ins__ is None:
-                self.__ins__ = single(__config_provider_cache__[key])
+                self.__ins__ = resolve_singleton(__config_provider_cache__[key])
             return self.__ins__
         def __getattr__(self, item):
             ins = self.__get_ins__()
@@ -365,9 +381,53 @@ def inject(cls):
         def __get_ins__(self):
             if self.__ins__ is None:
                 if __config_provider_cache__.get(key) is None:
-                    self.__ins__ = single(self.__cls__)
+                    self.__ins__ = resolve_singleton(self.__cls__)
                 else:
-                    self.__ins__ = single(__config_provider_cache__.get(key))
+                    self.__ins__ = resolve_singleton(__config_provider_cache__.get(key))
+            return self.__ins__
+        def __getattr__(self, item):
+            ins = self.__get_ins__()
+            return getattr(ins,item)
+    __lazy_injector__[key] = lazy_cls(cls)
+    return __lazy_injector__[key]
+def scope(cls):
+    global __lazy_injector__
+    global __config_provider_cache__
+    key=f"{cls.__module__}/{cls.__name__}"
+    if __lazy_injector__.get(key):
+        return __lazy_injector__[key]
+    class lazy_cls:
+        def __init__(self,cls):
+            self.__cls__=cls
+            self.__ins__ = None
+        def __get_ins__(self):
+            if self.__ins__ is None:
+                if __config_provider_cache__.get(key) is None:
+                    self.__ins__ = resolve_scope(self.__cls__)
+                else:
+                    self.__ins__ = resolve_scope(__config_provider_cache__.get(key))
+            return self.__ins__
+        def __getattr__(self, item):
+            ins = self.__get_ins__()
+            return getattr(ins,item)
+    __lazy_injector__[key] = lazy_cls(cls)
+    return __lazy_injector__[key]
+def singleton(cls):
+    global __lazy_injector__
+    global __config_provider_cache__
+    key=f"{cls.__module__}/{cls.__name__}"
+    if __lazy_injector__.get(key):
+        return __lazy_injector__[key]
+    class lazy_cls:
+        def __init__(self,cls):
+            self.__cls__=cls
+            self.__ins__ = None
+        def __get_ins__(self):
+            if self.__ins__ is None:
+                if __config_provider_cache__.get(key) is None:
+                    self.__ins__ = resolve_singleton(self.__cls__)
+                else:
+                    self.__ins__ = resolve_singleton(__config_provider_cache__.get(key))
             return self.__ins__
         def __getattr__(self, item):
             ins = self.__get_ins__()
