@@ -75,7 +75,8 @@ jwt:
 tmp_upload_dir: ./tmp
 elastic_search:
   server:
-    - http://192.168.18.36:9200
+#    - http://192.168.18.36:9200
+    - http://localhost:9200
   index: lv-files-server-v2
   prefix_index: lv-codx
   index_max_analyzed_offset: 60000000

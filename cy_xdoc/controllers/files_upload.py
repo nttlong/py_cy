@@ -21,9 +21,9 @@ import typing
 def files_upload(app_name: str, UploadId: str, Index: int, FilePart: UploadFile,
                  token=Depends(Authenticate)) -> UploadFilesChunkInfoResult:
     content_part = FilePart.file.read()
-    file_service:FileServices = cy_kit.inject(FileServices)
-    file_storage_service:FileStorageService = cy_kit.inject(FileStorageService)
-    msg_service:MessageService = cy_kit.inject(MessageService)
+    file_service:FileServices = cy_kit.singleton(FileServices)
+    file_storage_service:FileStorageService = cy_kit.singleton(FileStorageService)
+    msg_service:MessageService = cy_kit.singleton(MessageService)
 
     upload_item = file_service.get_upload_register(app_name,upload_id =UploadId)
     if upload_item is None:
@@ -85,13 +85,18 @@ def files_upload(app_name: str, UploadId: str, Index: int, FilePart: UploadFile,
     if num_of_chunks_complete == nun_of_chunks:
         status = 1
 
-
+    file_controller_type= cy_kit.get_runtime_type(file_storage_service)
+    file_controller = None
+    if file_controller_type:
+        file_controller = f"{file_controller_type.__module__}:{file_controller_type.__name__}"
     upload_register_doc.context.update(
         upload_register_doc.fields.Id == UploadId,
         upload_register_doc.fields.SizeUploaded << size_uploaded,
         upload_register_doc.fields.NumOfChunksCompleted <<num_of_chunks_complete,
         upload_register_doc.fields.Status <<status,
-        upload_register_doc.fields.MainFileId << fs.get_id()
+        upload_register_doc.fields.MainFileId << fs.get_id(),
+        upload_register_doc.fields.FileModuleController <<file_controller
+
     )
 
 

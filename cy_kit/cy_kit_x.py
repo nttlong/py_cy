@@ -491,3 +491,26 @@ def create_logs(logs_dir,name:str) -> logging.Logger:
     hdlr = logging.FileHandler(full_dir + '/log{}.txt'.format(datetime.datetime.strftime(datetime.datetime.now(), '%Y%m%d%H%M%S_%f')))
     _logs.addHandler(hdlr)
     return _logs
+
+
+def get_runtime_type(injector_instance):
+    if hasattr(injector_instance,"__cls__"):
+        cls=injector_instance.__cls__
+        key = f"{cls.__module__}/{cls.__name__}"
+        if __config_provider_cache__.get(key):
+            return __config_provider_cache__[key]
+        return injector_instance.__cls__
+    else:
+        return None
+
+
+def singleton_from_path(injector_path:str):
+    module_name,class_name =injector_path.split(':')
+    import sys
+    if sys.modules.get(module_name) is None:
+        raise Exception(f"{module_name} was not found")
+    if hasattr(sys.modules[module_name], class_name):
+        cls_type = getattr(sys.modules[module_name],class_name)
+        return  singleton(cls_type)
+    else:
+        raise Exception(f"{class_name} was not found in {module_name}")

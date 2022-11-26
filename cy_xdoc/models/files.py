@@ -288,6 +288,11 @@ class DocUploadRegister:
     Vi du: ClientPrivileges = [{user:'user_id_1,user_id_2'},{dept:'hr,acc'}]
     
     """
+    FileModuleController:typing.Optional[dict]
+    """
+    Cau hinh tai file
+    dic={relative file path:{__module__}:{__class name__}}
+    """
 
 @cy_docs.define(
     name="fs.files",

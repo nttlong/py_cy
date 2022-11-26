@@ -421,7 +421,12 @@ class FileServices:
         return privileges_server, privileges_client
 
 
-    def get_main_file_of_upload_by_rel_file_path(self, app_name, rel_file_path):
+    def get_main_file_of_upload_by_rel_file_path(self, app_name, rel_file_path, runtime_file_reader:type = None):
+        if runtime_file_reader is not None:
+            return runtime_file_reader.get_file_by_name(
+            app_name=app_name,
+            rel_file_path=rel_file_path
+        )
         return self.file_storage_service.get_file_by_name(
             app_name=app_name,
             rel_file_path=rel_file_path
