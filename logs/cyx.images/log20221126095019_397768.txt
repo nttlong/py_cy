@@ -1,0 +1,5 @@
+'ImageServices' object has no attribute 'file_system_utils'
+Traceback (most recent call last):
+  File "C:\code\python\py_cy\cyx\images.py", line 24, in create_thumbs
+    filename_only = self.file_system_utils.get_file_name_only(image_file_path)
+AttributeError: 'ImageServices' object has no attribute 'file_system_utils'

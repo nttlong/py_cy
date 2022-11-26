@@ -69,3 +69,13 @@ def singleton(cls:T)->T:
     return cy_kit_x.singleton(cls)
 def scope(cls:T)->T:
     return cy_kit_x.scope(cls)
+
+
+def thread_makeup():
+    return cy_kit_x.thread_makeup()
+def get_local_host_ip():
+    return cy_kit_x.get_local_host_ip()
+
+
+def create_logs(log_dir, name):
+    return cy_kit_x.create_logs(log_dir,name)

@@ -248,6 +248,11 @@ def check_implement(interface: type, implement: type):
         return __provider_cache__[key]
 
     def get_module(cls):
+        if not hasattr(cls,"__module__"):
+            return None, None
+        if not hasattr(cls,"__name__"):
+            # raise Exception(f"{cls} don have __name__")
+            return cls.__module__, None
         return cls.__module__, cls.__name__
 
     interface_methods = {}
@@ -294,7 +299,12 @@ def check_implement(interface: type, implement: type):
                         u, v = get_module(m)
                         if u != int.__module__:
                             importers[u] = v
-                        fnc_declare += f"{a}:{m.__name__},"
+
+
+                        if v is None:
+                            fnc_declare += f"{a}:{m},"
+                        else:
+                            fnc_declare += f"{a}:{m.__name__},"
                     else:
                         fnc_declare += f"{a},"
                 i+=1
@@ -313,11 +323,14 @@ def check_implement(interface: type, implement: type):
             if handler.__doc__ is not None:
                 full_fnc_decalre+=f'\n\t"""{handler.__doc__}\t"""'
             else:
-                full_fnc_decalre += f'\n\t"""\n\tsome how to implement thy source here ...\n\t"""'
+                full_fnc_decalre += f'\n\t"""\n\tsomehow to implement thy source here ...\n\t"""'
             msg += f"\n{full_fnc_decalre}\n" \
                    f"\traise NotImplemented"
         for k, v in importers.items():
-            msg = f"\nfrom {k} import {v}\n{msg}"
+            if v is None:
+                msg = f"\nimport {k}\n{msg}"
+            else:
+                msg = f"\nfrom {k} import {v}\n{msg}"
         description = f"\nIt looks likes thou forgot implement thy source code\n\tPlease open file:\n\t\t\t{inspect.getfile(implement)}\n\t\t Then goto \n\t\t\t class {implement.__name__} \n\t\tinsert bellow code\n--------------------------------------------\n"
         raise Exception(f"{description}{msg}\n-----------------------\ngood luck!")
 
@@ -441,3 +454,40 @@ def singleton(cls):
             return getattr(ins,item)
     __lazy_injector__[key] = lazy_cls(cls)
     return __lazy_injector__[key]
+
+def thread_makeup():
+    def wrapper(func):
+        def runner(*args,**kwargs):
+            class cls_run:
+                def __init__(self,fn, *a,**b):
+                    self.th = threading.Thread(target=fn,args=a,kwargs=b)
+                def start(self):
+                    self.th.start()
+                    return self
+                def join(self):
+                    self.th.join()
+                    return self
+            return cls_run(func,*args,**kwargs)
+        return runner
+    return wrapper
+
+def get_local_host_ip():
+    import socket
+    hostname = socket.gethostname()
+    IPAddr = socket.gethostbyname(hostname)
+    return IPAddr
+import logging
+import datetime
+def create_logs(logs_dir,name:str) -> logging.Logger:
+    full_dir= os.path.abspath(
+        os.path.join(
+            logs_dir,name
+        )
+    )
+    if not os.path.isdir(full_dir):
+        os.makedirs(full_dir, exist_ok=True)
+
+    _logs = logging.Logger("name")
+    hdlr = logging.FileHandler(full_dir + '/log{}.txt'.format(datetime.datetime.strftime(datetime.datetime.now(), '%Y%m%d%H%M%S_%f')))
+    _logs.addHandler(hdlr)
+    return _logs

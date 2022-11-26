@@ -1,0 +1,30 @@
+<div class="dock full layout-columns">
+
+    <div class="dock full">
+        <div class="row">
+            <div ng-repeat="app in list" class="col-4">
+                <a href="javascript:void(0)" ng-click="doEdit(app.Name).then()">
+                    {{app.Name}}
+                </a>
+
+
+            </div>
+        </div>
+    </div>
+    <div>
+        <div class="layout-rows">
+            <div class="dock full">
+
+            </div>
+            <div>
+                <input type="button" value="{{$res('Add new')}}" class="form-control form-control-sm btn-primary" ng-click="doNew(app.Name).then()" />
+            </div>
+        </div>
+        
+    </div>
+        
+
+        
+
+  
+</div>

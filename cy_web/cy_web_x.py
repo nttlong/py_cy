@@ -438,7 +438,6 @@ def get_cls(cls):
 
 
 def __wrap_pydantic__(pre, cls, is_lock=True):
-
     global __wrap_pydantic_cache__
     global __wrap_pydantic_lock__
     if cls.__module__ == typing.__name__ and cls.__origin__ == list:
@@ -525,7 +524,7 @@ def check_is_need_pydantic(cls):
     if not inspect.isclass(cls) and callable(cls):
         return False
     if hasattr(cls, "__origin__") and cls.__origin__ == List.__origin__ and hasattr(cls,
-                                                                                           "__args__") and isinstance(
+                                                                                    "__args__") and isinstance(
         cls.__args__, tuple):
         ret = []
         for x in cls.__args__:
@@ -545,17 +544,17 @@ def check_is_need_pydantic(cls):
 class RequestHandler:
 
     def __init__(self, method, path, handler):
-        if method=="get":
-            self.path=path
-            self.method=method
-            self.handler=handler
+        if method == "get":
+            self.path = path
+            self.method = method
+            self.handler = handler
             self.return_type = None
             return
 
         self.path = path
         __old_dfs__ = []
         self.return_type = None
-        tmp_lst=[]
+        tmp_lst = []
         if handler.__defaults__ is not None:
             pos = 0
             tmp_lst = list(handler.__defaults__)
@@ -575,20 +574,22 @@ class RequestHandler:
             __old_dfs__ = list(handler.__defaults__)
         __annotations__: dict = handler.__annotations__
         __defaults__ = []
-        tmp_lst=[]
+        tmp_lst = []
         for k, v in __annotations__.items():
-            if hasattr(v,"__module__") and v.__module__=="typing" and hasattr(v,"__origin__") and v.__origin__==list and hasattr(v,"__args__") and isinstance(v.__args__,tuple):
-                arg_type= v.__args__[0]
+            if hasattr(v, "__module__") and v.__module__ == "typing" and hasattr(v,
+                                                                                 "__origin__") and v.__origin__ == list and hasattr(
+                    v, "__args__") and isinstance(v.__args__, tuple):
+                arg_type = v.__args__[0]
                 if inspect.isclass(arg_type) and issubclass(arg_type, fastapi.UploadFile):
                     method = "form"
                     tmp_lst += [fastapi.File()]
             if inspect.isclass(v) and issubclass(v, fastapi.UploadFile):
                 method = "form"
-                tmp_lst+= [fastapi.File()]
+                tmp_lst += [fastapi.File()]
 
-        if method=="form":
+        if method == "form":
             if handler.__defaults__ is not None:
-                handler.__defaults__= tuple(tmp_lst+list(handler.__defaults__))
+                handler.__defaults__ = tuple(tmp_lst + list(handler.__defaults__))
             else:
                 handler.__defaults__ = tuple(tmp_lst)
 
@@ -596,8 +597,8 @@ class RequestHandler:
 
             if method != "form":
 
-
-                if hasattr(v,"__module__") and v.__module__ =="typing" and v.__str__().startswith("typing.Union[") and v.__str__().endswith("NoneType]"):
+                if hasattr(v, "__module__") and v.__module__ == "typing" and v.__str__().startswith(
+                        "typing.Union[") and v.__str__().endswith("NoneType]"):
                     __defaults__ += [fastapi.Body(
                         default=None,
                         embed=True,
@@ -612,14 +613,17 @@ class RequestHandler:
                 if check_is_need_pydantic(v):
                     handler.__annotations__[k] = __wrap_pydantic__("", v)
                     if k != "return":
-                        __defaults__ += [fastapi.Body(title=k,embed=True)]
+                        __defaults__ += [fastapi.Body(title=k, embed=True)]
 
                     else:
                         self.return_type = handler.__annotations__[k]
-                        __defaults__+=[fastapi.Body(embed=True)]
-                elif (not(hasattr(v,"__module__") and v.__module__ == "typing")) and v not in [str,int,bool,datetime,float] and  issubclass(v,pydantic.BaseModel) and k != "return":
-                     __defaults__ += [fastapi.Body(embed=True)]
-                elif v in [str,int,bool,datetime,float] and k!="return" and f"{k}" not in path :
+                        __defaults__ += [fastapi.Body(embed=True)]
+                elif (not (hasattr(v, "__module__") and v.__module__ == "typing")) and v not in [str, int, bool,
+                                                                                                 datetime,
+                                                                                                 float] and issubclass(
+                        v, pydantic.BaseModel) and k != "return":
+                    __defaults__ += [fastapi.Body(embed=True)]
+                elif v in [str, int, bool, datetime, float] and k != "return" and f"{k}" not in path:
                     __defaults__ += [fastapi.Body(embed=True)]
 
             else:
@@ -629,9 +633,9 @@ class RequestHandler:
                         handler.__annotations__[k] = __wrap_pydantic__("", v)
                 elif "{" + k + "}" in self.path:
                     continue
-                elif k != "return" and v in[str,int,float,bool,datetime]:
+                elif k != "return" and v in [str, int, float, bool, datetime]:
                     __defaults__ += [fastapi.Form(...)]
-                    __annotations__[k]=Union[v, None]
+                    __annotations__[k] = Union[v, None]
                 elif v == fastapi.UploadFile or v == fastapi.Request or \
                         (hasattr(v, "__origin__") and v.__origin__ == List[fastapi.UploadFile].__origin__
                          and hasattr(v, "__args__") and v.__args__[0] == fastapi.UploadFile):
@@ -639,20 +643,19 @@ class RequestHandler:
                 # if not "{" + k + "}" in self.path:
                 #     import typing
 
-                    # elif k != "return" :
-                    #     continue
+                # elif k != "return" :
+                #     continue
                 elif k != "return":
                     __defaults__ += [fastapi.Form(...)]
-                        # __wrap_pydantic__(handler.__name__, v)
-
+                    # __wrap_pydantic__(handler.__name__, v)
 
         # def new_handler(*args,**kwargs):
         #     handler(*args,**kwargs)
-        if method !="form":
+        if method != "form":
             __defaults__ += __old_dfs__
             handler.__defaults__ = tuple(__defaults__)
         else:
-            handler.__defaults__ = tuple(__defaults__+list(handler.__defaults__))
+            handler.__defaults__ = tuple(__defaults__ + list(handler.__defaults__))
         self.handler = handler
         if method == "form": method = "post"
         self.method = method
@@ -680,11 +683,6 @@ from fastapi.templating import Jinja2Templates
 # __instance__ = None
 
 
-def load_controller_from_file(file):
-    if not os.path.isfile(file):
-        print(f"{file} was not found")
-        logging.Logger.error(f"{file} was not found")
-    pass
 
 
 class BaseWebApp:
@@ -764,8 +762,6 @@ class BaseWebApp:
 
         return wrapper
 
-
-
     def load_controller_from_file(self, full_file_path, prefix):
         if not os.path.isfile(full_file_path):
             return
@@ -800,8 +796,13 @@ class BaseWebApp:
                             v.return_type = v.handler.__annotations__.get("return")
 
                 if v.return_type is not None:
-
-                    getattr(self.app, v.method)(_path, response_model=v.return_type)(v.handler)
+                    try:
+                        getattr(self.app, v.method)(_path, response_model=v.return_type)(v.handler)
+                    except Exception as e:
+                        raise Exception(f"Error when create handler\n"
+                                        f"Please preview file {v.handler.__code__.co_filename}\n"
+                                        f"Error msg\n"
+                                        f"\t{e}")
                 else:
 
                     getattr(self.app, v.method)(_path)(v.handler)
@@ -831,13 +832,13 @@ def create_access_token(data: dict, expires_delta=None, SECRET_KEY=None, ALGORIT
     return encoded_jwt
 
 
-def login_for_access_token(request:fastapi.Request, form_data: OAuth2PasswordRequestForm = Depends()):
+def login_for_access_token(request: fastapi.Request, form_data: OAuth2PasswordRequestForm = Depends()):
     global web_application
     if not isinstance(web_application, WebApp):
         raise Exception("WebApp was not found")
     if web_application.on_auth_user is None:
         raise Exception("Please create on auth user with  cy_web_x.auth_user")
-    user = web_application.on_auth_user(request,form_data.username, form_data.password)
+    user = web_application.on_auth_user(request, form_data.username, form_data.password)
     if not isinstance(user, dict):
         raise Exception(
             f"{web_application.on_auth_user.__name__} in {web_application.on_auth_user.__code__.co_filename} must return dictionary with username:str and application:str,is_ok:bool")
@@ -879,7 +880,7 @@ class WebApp(BaseWebApp):
                  url_get_token: str = "api/accounts/token",
                  jwt_algorithm: str = "HS256",
                  jwt_secret_key: str = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7",
-                 cache_folder:str="./cache"
+                 cache_folder: str = "./cache"
                  ):
         global __cache_apps__
         global __cache_apps_lock__
@@ -887,7 +888,7 @@ class WebApp(BaseWebApp):
         web_application = self
         self.request_handlers = dict()
         self.app = fastapi.FastAPI()
-        if sys.platform=="win32":
+        if sys.platform == "win32":
             self.app.middleware("http")(windows_fxi_javascript_resource)
         self.url_get_token = url_get_token
         self.jwt_algorithm = jwt_algorithm
@@ -896,13 +897,12 @@ class WebApp(BaseWebApp):
         self.dev_mode = dev_mode
         self.api_host_dir = api_host_dir
 
-
         self.working_dir = working_dir
-        if cache_folder[0:2]=="./":
-            cache_folder =os.path.join(self.working_dir, cache_folder[2:])
+        if cache_folder[0:2] == "./":
+            cache_folder = os.path.join(self.working_dir, cache_folder[2:])
             if not os.path.isdir(cache_folder):
-                os.makedirs(cache_folder,exist_ok=True)
-        self.cache_folder=cache_folder
+                os.makedirs(cache_folder, exist_ok=True)
+        self.cache_folder = cache_folder
         self.static_dir = static_dir
         if self.static_dir is not None and self.static_dir[0:2] == "./":
             self.static_dir = os.path.join(self.working_dir, self.static_dir[2:])
@@ -952,30 +952,37 @@ class WebApp(BaseWebApp):
         if self.host_dir is not None and self.host_dir != "":
             self.url_get_token = self.host_dir + "/" + self.url_get_token
 
-
         self.app.post("/" + self.url_get_token)(login_for_access_token)
 
-    def unvicorn_start(self, start_path,worker=4):
+    def unvicorn_start(self, start_path, worker=4):
         global web_application
         # for k,v in self.web_app_module.__dict__.items():
         #     if v==self:
         #        self.web_app_name=k
+        if not isinstance(web_application,WebApp):
+            raise  Exception("Web application can not start")
         run_path = f"{start_path}:web_application.app"
+        if not self.dev_mode:
+            run_path=web_application.app
         if self.dev_mode:
             uvicorn.run(
-                run_path,
+                app=run_path,
+                loop="asyncio",
                 host=self.bind_ip,
                 port=self.host_port,
                 log_level="info",
                 lifespan='on',
-                ws_max_size=16777216 * 1024,
+                ws_max_size=8*8 * 1024*1024,
                 reload=self.dev_mode,
                 reload_dirs=self.working_dir,
                 workers=worker,
                 ws='websockets',
                 backlog=1000,
-                # interface='WSGI',
-                timeout_keep_alive=True
+                interface='asgi3',
+                timeout_keep_alive=True,
+                h11_max_incomplete_event_size=1024 * 1024 * 8,
+                http="httptools",
+                factory=not self.dev_mode
             )
         else:
             uvicorn.run(
@@ -1013,6 +1020,7 @@ def web_handler(path: str, method: str, response_model=None):
 def add_controller(web_app, prefix_path: str, controller_dir):
     web_app.load_controller_from_dir(prefix_path, controller_dir)
 
+
 async def windows_fxi_javascript_resource(request: Request, call_next):
     res = await call_next(request)
     if request.url.path.endswith('.js') and '/static/' in request.url.path:
@@ -1020,10 +1028,11 @@ async def windows_fxi_javascript_resource(request: Request, call_next):
         res.headers['content-type'] = t
 
     return res
+
+
 def start_with_uvicorn(worker=4):
     global web_application
     if isinstance(web_application, WebApp):
-
         web_application.unvicorn_start(
             f"{WebApp.__module__}",
             worker
@@ -1046,12 +1055,6 @@ def middleware():
     global web_application
     if isinstance(web_application, WebApp):
         return web_application.app.middleware("http")
-
-
-
-
-
-
 
 
 def fast_api() -> fastapi.FastAPI:
@@ -1147,7 +1150,10 @@ def get_jwt_algorithm():
     if isinstance(web_application, WebApp):
         return web_application.jwt_algorithm
 
+
 import starlette.requests
+
+
 def validate_token_in_request(self, request):
     token = None
     if request.cookies.get('access_token_cookie', None) is not None:
@@ -1172,11 +1178,11 @@ def validate_token_in_request(self, request):
                               algorithms=[self.jwt_algorithm],
                               options={"verify_signature": False},
                               )
-        username = ret_data.get("username",ret_data.get("sub"))
+        username = ret_data.get("username", ret_data.get("sub"))
         application = ret_data.get("application")
         setattr(request, "username", username)
         setattr(request, "application", application)
-        if self.validate(request,username, application):
+        if self.validate(request, username, application):
             return dict(token=token, username=username, application=application)
         else:
             raise HTTPException(
@@ -1208,7 +1214,7 @@ def auth_type(a_type: type):
         global web_application
         assert isinstance(web_application, WebApp)
         cls = type(f"{cls.__name__}", (cls, a_type), {})
-        if not hasattr(cls,"validate"):
+        if not hasattr(cls, "validate"):
             raise Exception(f"{cls.__module__}.{cls.__name__} must have validate function looks like:\n"
                             f"def validate(self,request:fastapi.Request,username:str,application:str)->bool:\n"
                             f" blab ...")
@@ -1217,77 +1223,88 @@ def auth_type(a_type: type):
         validate_token_in_request.__annotations__["request"] = validate.__annotations__["request"]
         setattr(cls, "__call__", validate_token_in_request)
         instance = cls()
-        setattr(instance,"jwt_secret_key",web_application.jwt_secret_key)
+        setattr(instance, "jwt_secret_key", web_application.jwt_secret_key)
         setattr(instance, "jwt_algorithm", web_application.jwt_algorithm)
-        def on_auth_user(request,username,password):
-            return instance.validate_account(request,username,password)
-        web_application.on_auth_user=on_auth_user
+
+        def on_auth_user(request, username, password):
+            return instance.validate_account(request, username, password)
+
+        web_application.on_auth_user = on_auth_user
         return instance
 
-
     return wrapper
+
+
 import pydantic.fields
-def model(all_field_are_optional:bool=False):
+
+
+def model(all_fields_are_optional: bool = False):
     def warpper(cls):
         for x in cls.__bases__:
-            if hasattr(x,"__annotations__"):
-                for k,v in x.__annotations__.items():
-                    if all_field_are_optional:
-                        cls.__annotations__[k] =Optional[v]
+            if hasattr(x, "__annotations__"):
+                for k, v in x.__annotations__.items():
+                    if all_fields_are_optional:
+                        cls.__annotations__[k] = Optional[v]
                     else:
-                        cls.__annotations__[k]=v
-        for k,v in cls.__annotations__.items():
-            if isinstance(v,tuple):
+                        cls.__annotations__[k] = v
+        for k, v in cls.__annotations__.items():
+            if isinstance(v, tuple):
                 v_t = v[0]
-                v_d =""
-                v_r=False
+                v_d = ""
+                v_r = False
                 for x in v:
-                    if isinstance(x,type):
-                        v_t=x
-                    if isinstance(x,str):
-                        v_d=x
-                    if isinstance(x,bool):
-                        v_r=x
-                cls.__annotations__[k]=v_t
+                    if isinstance(x, type):
+                        v_t = x
+                    if isinstance(x, str):
+                        v_d = x
+                    if isinstance(x, bool):
+                        v_r = x
+                cls.__annotations__[k] = v_t
 
-
-                setattr(cls,k,pydantic.Field(
+                setattr(cls, k, pydantic.Field(
                     description=v_d,
                 ))
             else:
-                if all_field_are_optional:
+                if all_fields_are_optional:
                     cls.__annotations__[k] = Optional[v]
 
+        return __wrap_pydantic__("", cls, False)
 
-        return __wrap_pydantic__("",cls,False)
     return warpper
-def get_cache_folder_path()->str:
+
+
+def get_cache_folder_path() -> str:
     global web_application
-    if isinstance(web_application,WebApp):
+    if isinstance(web_application, WebApp):
         return web_application.cache_folder
-__cache_content_dict__ ={}
-__cache_content_dict_lock__ =  threading.Lock()
-def cache_content(relative_folder:str,file_name,content:bytes)->str:
+
+
+__cache_content_dict__ = {}
+__cache_content_dict_lock__ = threading.Lock()
+
+
+def cache_content(relative_folder: str, file_name, content: bytes) -> str:
     global web_application
     global __cache_content_dict__
     if isinstance(web_application, WebApp):
-        key =f"{relative_folder}/{file_name}".lower()
+        key = f"{relative_folder}/{file_name}".lower()
 
         if not __cache_content_dict__.get(key):
             with __cache_content_dict_lock__:
                 file_cache = os.path.join(web_application.cache_folder, relative_folder.replace('/', os.sep))
                 if not os.path.isdir(file_cache):
                     os.makedirs(file_cache, exist_ok=True)
-                file_cache=os.path.join(file_cache,file_name)
+                file_cache = os.path.join(file_cache, file_name)
                 if not os.path.isfile(file_cache):
-                    with open(file_cache,"wb") as f:
+                    with open(file_cache, "wb") as f:
                         f.write(content)
 
-                __cache_content_dict__[key]=file_cache
+                __cache_content_dict__[key] = file_cache
 
     return __cache_content_dict__[key]
 
-def cache_content_check(relative_folder:str,file_name):
+
+def cache_content_check(relative_folder: str, file_name):
     global web_application
     global __cache_content_dict__
     if isinstance(web_application, WebApp):
@@ -1303,9 +1320,12 @@ def cache_content_check(relative_folder:str,file_name):
             __cache_content_dict__[key] = file_cache
     return __cache_content_dict__[key]
 
+
 from fastapi import HTTPException, Request, status
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, FileResponse
 import mimetypes
+
+
 def __get_range_header__(range_header: str, file_size: int):
     def _invalid_range():
         return HTTPException(
@@ -1324,10 +1344,17 @@ def __get_range_header__(range_header: str, file_size: int):
         raise _invalid_range()
     return start, end
 
+
+import queue
+
+
 def __send_bytes_range_requests__(
         file_obj, start: int, end: int, chunk_size: int = 10_000
 ):
+    """Send a file in chunks using Range Requests specification RFC7233
 
+        `start` and `end` parameters are inclusive due to specification
+        """
     file_obj.seek(start)
     data = [1]
     pos = file_obj.tell()
@@ -1336,6 +1363,7 @@ def __send_bytes_range_requests__(
         data = file_obj.read(read_size)
 
         yield data
+
 
 async def __send_bytes_range_requests_async__(
         file_obj, start: int, end: int, chunk_size: int = 10_000
@@ -1352,10 +1380,115 @@ async def __send_bytes_range_requests_async__(
         data = await file_obj.read(read_size)
 
         yield data
+from functools import partial
+import anyio
+import os
+import stat
+import sys
+import typing
+from starlette.types import Receive, Send,Scope
+from fastapi import Response
+from starlette.background import BackgroundTask
+from  starlette.concurrency import iterate_in_threadpool
+Content = typing.Union[str, bytes]
+SyncContentStream = typing.Iterator[Content]
+AsyncContentStream = typing.AsyncIterable[Content]
+ContentStream = typing.Union[AsyncContentStream, SyncContentStream]
+class AsyncStreamingResponse(Response):
+    body_iterator: AsyncContentStream
+
+    def __init__(
+        self,
+        file_Stream,
+        start,
+        end,
+        segment_size,
+        buffering_size,
+        content: ContentStream,
+        status_code: int = 200,
+        headers: typing.Optional[typing.Mapping[str, str]] = None,
+        media_type: typing.Optional[str] = None,
+        background: typing.Optional[BackgroundTask] = None,
+    ) -> None:
+
+        self.start = start
+        self.end = end
+        size = self.end - self.start
+        self.segment_size=segment_size
+        self.buffering_size=buffering_size
+
+        self.file_Stream = file_Stream
+        self.content_reader = content
+        self.status_code = status_code
+        self.media_type = self.media_type if media_type is None else media_type
+        self.background = background
+        x=self.start
+        y=min(self.end, self.start + self.segment_size-1)
+        headers[
+            'content-range'] = f"bytes {x}-{y}/{self.file_Stream.get_size()}"
+        self.init_headers(headers)
+
+    async def listen_for_disconnect(self, receive: Receive) -> None:
+        while True:
+            message = await receive()
+            if message["type"] == "http.disconnect":
+                self.file_Stream.close()
+
+                break
+
+    async def stream_response(self, send: Send) -> None:
+        await send(
+            {
+                "type": "http.response.start",
+                "status": self.status_code,
+                "headers": self.raw_headers,
+            }
+        )
+        self.file_Stream.seek(self.start)
+        data = [1]
+        pos = self.file_Stream.tell()
+        b_size=0
+        while len(data) > 0:
+            read_size = min(self.buffering_size, self.end + 1 - pos)
+            data = self.file_Stream.read(read_size)
+            if data.__len__()>0:
+                await send({"type": "http.response.body", "body": data, "more_body": True})
+            else:
+                await send({"type": "http.response.body", "body": data, "more_body": True})
+                break
+            b_size+=read_size
+
+
+        # self.file_Stream.seek(self.start)
 
 
 
-async def streaming_async(fsg,request,content_type,streaming_buffering=1024 *  8*4,segment_size=None):
+        # begin = self.file_Stream.tell()
+        #
+        # while begin<self.end:
+        #     data = self.file_Stream.read(min(self.buffering_size, self.end - begin))
+        #     await send({"type": "http.response.body", "body": data, "more_body": True})
+        #     begin = self.file_Stream.tell()
+        #     # end = min(self.end, begin + self.segment_size)
+        #     # while begin <end:
+        #     #
+        #     #     end = begin+data.__len__()
+
+        #await send({"type": "http.response.body", "body": b"", "more_body": False})
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        async with anyio.create_task_group() as task_group:
+
+            async def wrap(func: "typing.Callable[[], typing.Awaitable[None]]") -> None:
+                await func()
+                task_group.cancel_scope.cancel()
+
+            task_group.start_soon(wrap, partial(self.stream_response, send))
+            await wrap(partial(self.listen_for_disconnect, receive))
+
+        if self.background is not None:
+            await self.background()
+async def streaming_async(fsg, request, content_type, streaming_buffering=1024 * 8 * 8, segment_size=None):
     """
     Streaming content
     :param fsg: mongodb gridOut
@@ -1370,7 +1503,7 @@ async def streaming_async(fsg,request,content_type,streaming_buffering=1024 *  8
     headers = {
         "content-type": content_type,
         "accept-ranges": "bytes",
-        "content-encoding": "identity",
+        # "content-encoding": "identity",
         "content-length": str(file_size),
         "access-control-expose-headers": (
             "content-type, accept-ranges, content-length, "
@@ -1379,33 +1512,45 @@ async def streaming_async(fsg,request,content_type,streaming_buffering=1024 *  8
     }
     start = 0
     end = file_size - 1
-    if segment_size is not None:
-        end = min(segment_size, file_size)-1
+
 
     status_code = 200
 
-
     if range_header is not None:
-
         start, end = __get_range_header__(range_header, file_size)
         size = end - start + 1
 
-            # end = start+size-1
-
+        # end = start+size-1
 
         headers["content-length"] = str(size)
         headers["content-range"] = f"bytes {start}-{end}/{file_size}"
         status_code = status.HTTP_206_PARTIAL_CONTENT
-    if hasattr(fsg,"delegate"):
-        content = __send_bytes_range_requests_async__(fsg,start,end, streaming_buffering)
-    else:
-        content =  __send_bytes_range_requests__(fsg, start, end, streaming_buffering)
-    res = StreamingResponse(
-        content=content,
-        headers=headers,
-        status_code=status_code,
-        media_type=content_type
-    )
+    if segment_size:
+        res = AsyncStreamingResponse(
+            file_Stream = fsg,
+            start=start,
+            end=end,
+            segment_size=segment_size,
+            buffering_size=streaming_buffering,
+            content=None,
+            headers=headers,
+            status_code=status_code,
+            media_type=content_type
+        )
 
+    else:
+        if hasattr(fsg, "delegate"):
+            content = __send_bytes_range_requests_async__(fsg, start, end, streaming_buffering)
+        else:
+            content = __send_bytes_range_requests__(fsg, start, end, streaming_buffering)
+        res = StreamingResponse(
+            content=content,
+            media_type=content_type,
+            status_code=status_code,
+            headers=headers
+        )
+
+    res.headers.append("Cache-Control", "max-age=86400")
+    res.headers.append("Content-Type", content_type)
 
     return res
