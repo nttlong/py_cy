@@ -29,7 +29,7 @@ def container(*args, **kwargs):
 
         def __container__getattribute____(obj, item):
             ret = None
-            if item[0:2] == "__" and item[-2] == "__":
+            if item[0:2] == "__" and item[:-2] == "__":
                 if old_getattr is not None:
                     return old_getattr(obj, item)
                 else:

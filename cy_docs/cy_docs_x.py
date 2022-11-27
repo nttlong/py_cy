@@ -42,6 +42,7 @@ import bson
 
 def get_mongodb_text(data):
     if isinstance(data, dict):
+
         ret = {}
         for k, v in data.items():
             ret[k] = get_mongodb_text(v)
@@ -102,7 +103,7 @@ def to_camel(name: str) -> str:
     with __camel_lock__:
         ret = ""
         pos = 0
-        for c in name:
+        for c in enumerate(name):
             if c.isupper():
                 if pos == 0:
                     ret += f"{c.lower()}"
